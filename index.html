@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>シール帳</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(160deg, #fff0f5 0%, #e8f4fd 50%, #f0fff4 100%);
+      font-family: 'Hiragino Maru Gothic Pro', 'BIZ UDPGothic', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+      overflow-x: hidden;
+    }
+
+    /* ===== ヘッダー ===== */
+    header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    header h1 {
+      font-size: 2.4rem;
+      letter-spacing: 0.1em;
+      color: #ff6b9d;
+      text-shadow: 2px 3px 0 #ffd6e8, 4px 5px 0 rgba(255,107,157,0.15);
+    }
+
+    .progress-bar-wrap {
+      margin-top: 10px;
+      background: #ffe0ef;
+      border-radius: 20px;
+      height: 14px;
+      width: 260px;
+      overflow: hidden;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.08);
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #ff9abe, #ff6b9d);
+      border-radius: 20px;
+      transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      width: 0%;
+    }
+
+    .progress-label {
+      margin-top: 6px;
+      font-size: 0.85rem;
+      color: #e05c8a;
+      font-weight: bold;
+    }
+
+    /* ===== 貯まったシール帳バナー ===== */
+    .book-banner {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: linear-gradient(135deg, #fff8e1, #fff3cd);
+      border: 2.5px solid #ffd966;
+      border-radius: 16px;
+      padding: 10px 20px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .book-banner .book-count-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .book-banner .book-icon { font-size: 1.5rem; }
+
+    .book-banner .book-count-text {
+      font-size: 0.82rem;
+      color: #996600;
+      font-weight: bold;
+      line-height: 1.3;
+    }
+
+    .book-banner .book-count-num {
+      font-size: 1.6rem;
+      color: #cc8800;
+      font-weight: bold;
+      line-height: 1;
+    }
+
+    .btn-exchange {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ffd966, #ffb300);
+      color: white;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(255,180,0,0.4);
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-exchange:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 12px rgba(255,180,0,0.5);
+    }
+
+    .btn-exchange:disabled {
+      background: #e0e0e0;
+      color: #bbb;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    /* ===== シール帳 ===== */
+    .sticker-book {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 8px 32px rgba(255,107,157,0.18), 0 2px 8px rgba(0,0,0,0.06);
+      padding: 24px 20px;
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      max-width: 420px;
+      width: 100%;
+      position: relative;
+      border: 3px solid #ffe0ef;
+    }
+
+    .sticker-book::before {
+      content: "⭐ シール帳 ⭐";
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;
+      padding: 0 12px;
+      font-size: 0.75rem;
+      color: #ff6b9d;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+
+    /* ===== シール枠 ===== */
+    .slot {
+      aspect-ratio: 1;
+      min-height: 56px; /* aspect-ratio 非対応ブラウザ向けフォールバック */
+      border-radius: 50%;
+      border: 3px dashed #ffc2d8;
+      background: #fff8fb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+
+    .slot.filled {
+      border: none;
+      animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .slot .slot-number {
+      font-size: 0.6rem;
+      color: #f0a8c0;
+      font-weight: bold;
+      user-select: none;
+    }
+
+    .slot.filled .slot-number { display: none; }
+
+    .sticker-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(0); opacity: 0; }
+      60%  { transform: scale(1.25); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* シールの色パレット（ランダムに使う） */
+    .color-0 { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
+    .color-1 { background: linear-gradient(135deg, #a18cd1, #fbc2eb); }
+    .color-2 { background: linear-gradient(135deg, #84fab0, #8fd3f4); }
+    .color-3 { background: linear-gradient(135deg, #f6d365, #fda085); }
+    .color-4 { background: linear-gradient(135deg, #89f7fe, #66a6ff); }
+    .color-5 { background: linear-gradient(135deg, #fddb92, #d1fdff); }
+    .color-6 { background: linear-gradient(135deg, #96fbc4, #f9f586); }
+    .color-7 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+    .color-8 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+    .color-9 { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+
+    /* ===== 入力パネル ===== */
+    .panel {
+      margin-top: 24px;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 4px 16px rgba(107,155,255,0.14);
+      padding: 20px 20px 24px;
+      max-width: 420px;
+      width: 100%;
+      border: 3px solid #ddeeff;
+    }
+
+    .panel h2 {
+      font-size: 1rem;
+      color: #6b9fff;
+      text-align: center;
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: bold;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-choice {
+      flex: 1;
+      padding: 10px 4px;
+      border: 2.5px solid #e0e8ff;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #888;
+      transition: all 0.18s;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .btn-choice:hover {
+      border-color: #aac4ff;
+      background: #f0f5ff;
+      color: #5577dd;
+    }
+
+    .btn-choice.selected {
+      border-color: #6b9fff;
+      background: linear-gradient(135deg, #e8f0ff, #d0e3ff);
+      color: #3355cc;
+      box-shadow: 0 2px 8px rgba(107,155,255,0.25);
+    }
+
+    /* ===== 結果表示 ===== */
+    .result-area {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #f8f0ff;
+      border: 2px solid #e0c8ff;
+      text-align: center;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.3s;
+    }
+
+    .result-area .result-text {
+      font-size: 0.85rem;
+      color: #7755bb;
+      font-weight: bold;
+    }
+
+    .result-area .sticker-preview {
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+    }
+
+    /* ===== 貼るボタン ===== */
+    .btn-add {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #ff9abe, #ff6b9d);
+      color: white;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255,107,157,0.4);
+      transition: all 0.2s;
+    }
+
+    .btn-add:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(255,107,157,0.5);
+    }
+
+    .btn-add:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-add:disabled {
+      background: #e0e0e0;
+      color: #bbb;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    /* ===== リセットボタン ===== */
+    .btn-reset {
+      margin-top: 12px;
+      background: none;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      padding: 7px 20px;
+      font-family: inherit;
+      font-size: 0.8rem;
+      color: #aaa;
+      cursor: pointer;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+      transition: all 0.2s;
+    }
+
+    .btn-reset:hover {
+      border-color: #ff9abe;
+      color: #ff6b9d;
+    }
+
+    /* ===== 景品交換モーダル ===== */
+    .exchange-modal .emoji-big { font-size: 3.5rem; display: block; margin-bottom: 10px; }
+
+    .exchange-modal h2 {
+      font-size: 1.4rem;
+      color: #cc8800;
+      margin-bottom: 6px;
+    }
+
+    .exchange-modal p {
+      font-size: 0.88rem;
+      color: #777;
+      margin-bottom: 6px;
+    }
+
+    .exchange-modal .cost-info {
+      display: inline-block;
+      background: #fff8e1;
+      border: 2px solid #ffd966;
+      border-radius: 10px;
+      padding: 6px 14px;
+      font-size: 0.82rem;
+      color: #996600;
+      font-weight: bold;
+      margin: 8px 0 18px;
+    }
+
+    .exchange-modal .modal-btns {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn-cancel {
+      padding: 10px 22px;
+      border: 2.5px solid #ddd;
+      border-radius: 12px;
+      background: white;
+      color: #aaa;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-cancel:hover { border-color: #bbb; color: #888; }
+
+    .btn-do-exchange {
+      padding: 10px 22px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #ffd966, #ffb300);
+      color: white;
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 3px 10px rgba(255,180,0,0.4);
+      transition: all 0.2s;
+    }
+
+    .btn-do-exchange:hover { transform: translateY(-1px); }
+
+    /* ===== 完成モーダル ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 28px;
+      padding: 36px 28px;
+      text-align: center;
+      max-width: 320px;
+      width: 90%;
+      animation: modal-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    @keyframes modal-in {
+      from { transform: scale(0.5); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .modal .emoji-big { font-size: 4rem; display: block; margin-bottom: 12px; }
+
+    .modal h2 {
+      font-size: 1.6rem;
+      color: #ff6b9d;
+      margin-bottom: 8px;
+    }
+
+    .modal p {
+      font-size: 0.9rem;
+      color: #777;
+      margin-bottom: 20px;
+    }
+
+    .modal .btn-new {
+      padding: 12px 28px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, #ff9abe, #ff6b9d);
+      color: white;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(255,107,157,0.4);
+    }
+
+    .modal .completed-count-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff8e1;
+      border: 2px solid #ffd966;
+      border-radius: 12px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      color: #996600;
+      font-weight: bold;
+      margin-bottom: 18px;
+    }
+
+    .modal .completed-count-badge .n { font-size: 1.2rem; color: #cc8800; }
+
+    /* ===== 紙吹雪 ===== */
+    .confetti-piece {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      animation: confetti-fall 2.5s ease-in forwards;
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    @keyframes confetti-fall {
+      0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ヘッダー -->
+<header>
+  <h1>🌟 シール帳 🌟</h1>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+  <div class="progress-label" id="progressLabel">0 / 20 まい</div>
+</header>
+
+<!-- 貯まったシール帳バナー -->
+<div class="book-banner">
+  <div class="book-count-wrap">
+    <span class="book-icon">📒</span>
+    <div>
+      <div class="book-count-text">たまった シール帳</div>
+      <div><span class="book-count-num" id="bookCountNum">0</span> <span class="book-count-text">さつ</span></div>
+    </div>
+  </div>
+  <button class="btn-exchange" id="btnExchange" disabled onclick="openExchangeModal()">
+    🎁 けいひんと こうかん
+  </button>
+</div>
+
+<!-- シール帳 -->
+<div class="sticker-book" id="stickerBook"></div>
+
+<!-- 入力パネル -->
+<div class="panel">
+  <h2>📚 きょうのしゅくだい</h2>
+
+  <div class="input-group">
+    <label>しゅくだいの りょう</label>
+    <div class="btn-group" id="amountGroup">
+      <button class="btn-choice" data-value="3" onclick="selectChoice(this,'amount')">
+        📚📚📚<br>たくさん
+      </button>
+      <button class="btn-choice" data-value="2" onclick="selectChoice(this,'amount')">
+        📚📚<br>ふつう
+      </button>
+      <button class="btn-choice" data-value="1" onclick="selectChoice(this,'amount')">
+        📚<br>すこし
+      </button>
+    </div>
+  </div>
+
+  <div class="input-group">
+    <label>しゅくだいの スピード</label>
+    <div class="btn-group" id="speedGroup">
+      <button class="btn-choice" data-value="3" onclick="selectChoice(this,'speed')">
+        ⚡⚡⚡<br>はやい
+      </button>
+      <button class="btn-choice" data-value="2" onclick="selectChoice(this,'speed')">
+        ⚡⚡<br>ふつう
+      </button>
+      <button class="btn-choice" data-value="1" onclick="selectChoice(this,'speed')">
+        ⚡<br>ゆっくり
+      </button>
+    </div>
+  </div>
+
+  <div class="result-area" id="resultArea">
+    <span class="result-text">えらんでね！</span>
+  </div>
+
+  <button class="btn-add" id="btnAdd" disabled onclick="addStickers()">
+    シールを はる！
+  </button>
+
+  <button class="btn-reset" onclick="confirmReset()">
+    リセット
+  </button>
+</div>
+
+<!-- 完成モーダル -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <span class="emoji-big">🎉</span>
+    <h2>かんせい！！</h2>
+    <p>シールが 20まい<br>ぜんぶ うまったよ！すごいね〜！</p>
+    <div class="completed-count-badge">
+      📒 たまった シール帳：<span class="n" id="modalBookCount">0</span> さつ
+    </div>
+    <button class="btn-new" onclick="nextBook()">つぎのシール帳へ →</button>
+  </div>
+</div>
+
+<!-- 景品交換モーダル -->
+<div class="modal-overlay" id="exchangeOverlay">
+  <div class="modal exchange-modal">
+    <span class="emoji-big">🎁</span>
+    <h2>けいひん こうかん</h2>
+    <p>シール帳 1さつ つかって<br>けいひんと こうかんするよ！</p>
+    <div class="cost-info">いま：📒 <span id="exchangeBookCount">0</span> さつ → こうかんご：<span id="exchangeBookAfter">0</span> さつ</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeExchangeModal()">やめる</button>
+      <button class="btn-do-exchange" onclick="doExchange()">こうかんする！</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ===== 定数 ===== */
+  const TOTAL = 20;
+  const STICKER_EMOJIS = ['⭐','🌟','💖','🌈','🦄','🍭','🌸','🎀','🐱','🐶',
+                           '🍀','🎵','🎪','🍩','🦋','🌺','🎠','🧁','🌙','🐸'];
+  const NUM_COLORS = 10;
+
+  /* ===== 状態 ===== */
+  let filled = 0;
+  let selectedAmount = null;
+  let selectedSpeed  = null;
+  /* localStorage は Safari プライベートモード等で例外になるため try-catch で保護 */
+  function storageGet(key, fallback) {
+    try { return localStorage.getItem(key) ?? fallback; } catch(e) { return fallback; }
+  }
+  function storageSet(key, value) {
+    try { localStorage.setItem(key, value); } catch(e) {}
+  }
+
+  let completedBooks = parseInt(storageGet('completedBooks', '0'));
+
+  /* ===== 初期化 ===== */
+  function init() {
+    const book = document.getElementById('stickerBook');
+    book.innerHTML = '';
+    for (let i = 0; i < TOTAL; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      slot.id = `slot-${i}`;
+      slot.innerHTML = `<span class="slot-number">${i + 1}</span>`;
+      book.appendChild(slot);
+    }
+    updateProgress();
+    updateBookBanner();
+  }
+
+  /* ===== 選択ボタン ===== */
+  function selectChoice(btn, type) {
+    const groupId = type === 'amount' ? 'amountGroup' : 'speedGroup';
+    document.querySelectorAll(`#${groupId} .btn-choice`).forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    if (type === 'amount') selectedAmount = parseInt(btn.dataset.value);
+    else                   selectedSpeed  = parseInt(btn.dataset.value);
+    updateResult();
+  }
+
+  /* ===== 結果計算・表示 ===== */
+  function updateResult() {
+    const area = document.getElementById('resultArea');
+    const btn  = document.getElementById('btnAdd');
+
+    if (selectedAmount === null || selectedSpeed === null) {
+      area.innerHTML = '<span class="result-text">えらんでね！</span>';
+      btn.disabled = true;
+      return;
+    }
+
+    const count = calcStickers(selectedAmount, selectedSpeed);
+    const msg   = stickerMessage(count);
+    const icons = count > 0 ? '🌟'.repeat(count) : '😢';
+
+    area.innerHTML = `
+      <span class="result-text">${msg}</span>
+      <span class="sticker-preview">${icons}</span>
+    `;
+
+    // 全部埋まっているか、残り枠があるか確認
+    btn.disabled = (filled >= TOTAL);
+  }
+
+  function calcStickers(amount, speed) {
+    const score = amount + speed; // 2〜6
+    if (score <= 2) return 0;
+    if (score <= 4) return 1;
+    if (score === 5) return 2;
+    return 3; // score === 6
+  }
+
+  function stickerMessage(count) {
+    switch(count) {
+      case 0: return 'きょうは ゼロ…またあした！';
+      case 1: return 'よくできました！ 1まい！';
+      case 2: return 'すごい！ 2まい！';
+      case 3: return 'パーフェクト！ 3まい！🎉';
+    }
+  }
+
+  /* ===== シールを貼る ===== */
+  function addStickers() {
+    if (selectedAmount === null || selectedSpeed === null) return;
+    const count = calcStickers(selectedAmount, selectedSpeed);
+    if (count === 0) { shakePanelEffect(); return; }
+
+    let added = 0;
+    for (let i = 0; i < TOTAL && added < count; i++) {
+      const slot = document.getElementById(`slot-${i}`);
+      if (!slot.classList.contains('filled')) {
+        setTimeout(() => placeSticker(slot, filled + added), added * 150);
+        added++;
+      }
+    }
+
+    filled += added;
+    updateProgress();
+
+    // 選択リセット
+    setTimeout(() => {
+      selectedAmount = selectedSpeed = null;
+      document.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('selected'));
+      updateResult();
+
+      if (filled >= TOTAL) showComplete();
+    }, added * 150 + 300);
+  }
+
+  function placeSticker(slot, index) {
+    const emoji    = STICKER_EMOJIS[index % STICKER_EMOJIS.length];
+    const colorIdx = index % NUM_COLORS;
+    slot.classList.add('filled');
+    slot.innerHTML = `<div class="sticker-inner color-${colorIdx}">${emoji}</div>`;
+  }
+
+  /* ===== プログレス ===== */
+  function updateProgress() {
+    const pct = (filled / TOTAL) * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = `${filled} / ${TOTAL} まい`;
+  }
+
+  /* ===== シェイク演出 ===== */
+  function shakePanelEffect() {
+    const panel = document.querySelector('.panel');
+    panel.style.animation = 'none';
+    panel.offsetHeight; // reflow
+    panel.style.animation = 'shake 0.4s ease';
+  }
+
+  const shakeStyle = document.createElement('style');
+  shakeStyle.textContent = `
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-8px); }
+      40%      { transform: translateX(8px); }
+      60%      { transform: translateX(-6px); }
+      80%      { transform: translateX(6px); }
+    }
+  `;
+  document.head.appendChild(shakeStyle);
+
+  /* ===== 完成 ===== */
+  function showComplete() {
+    completedBooks++;
+    storageSet('completedBooks', completedBooks);
+    updateBookBanner();
+    document.getElementById('modalBookCount').textContent = completedBooks;
+
+    // モーダルを見せながら、シール帳はすぐリセットして新しい枠を用意する
+    filled = 0;
+    selectedAmount = selectedSpeed = null;
+    document.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('selected'));
+    init();
+    updateResult();
+
+    document.getElementById('modalOverlay').classList.add('show');
+    launchConfetti();
+  }
+
+  /* ===== つぎのシール帳へ（モーダルを閉じるだけ） ===== */
+  function nextBook() {
+    document.getElementById('modalOverlay').classList.remove('show');
+  }
+
+  /* ===== バナー更新 ===== */
+  function updateBookBanner() {
+    document.getElementById('bookCountNum').textContent = completedBooks;
+    document.getElementById('btnExchange').disabled = (completedBooks < 1);
+  }
+
+  /* ===== 景品交換モーダル ===== */
+  function openExchangeModal() {
+    document.getElementById('exchangeBookCount').textContent = completedBooks;
+    document.getElementById('exchangeBookAfter').textContent = completedBooks - 1;
+    document.getElementById('exchangeOverlay').classList.add('show');
+  }
+
+  function closeExchangeModal() {
+    document.getElementById('exchangeOverlay').classList.remove('show');
+  }
+
+  function doExchange() {
+    if (completedBooks < 1) return;
+    completedBooks--;
+    storageSet('completedBooks', completedBooks);
+    closeExchangeModal();
+    updateBookBanner();
+    launchExchangeCelebration();
+  }
+
+  function launchExchangeCelebration() {
+    const colors = ['#ffd700','#ff6b9d','#7bdcb5','#89d4f5','#f5a623'];
+    for (let i = 0; i < 50; i++) {
+      setTimeout(() => {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left   = Math.random() * 100 + 'vw';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = (1.2 + Math.random()) + 's';
+        piece.style.width  = (6 + Math.random() * 8) + 'px';
+        piece.style.height = (6 + Math.random() * 8) + 'px';
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 2500);
+      }, i * 25);
+    }
+  }
+
+  function launchConfetti() {
+    const colors = ['#ff6b9d','#ffd700','#7bdcb5','#89d4f5','#f5a623','#bd10e0'];
+    for (let i = 0; i < 80; i++) {
+      setTimeout(() => {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        piece.style.left   = Math.random() * 100 + 'vw';
+        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDelay    = Math.random() * 0.5 + 's';
+        piece.style.animationDuration = (1.5 + Math.random()) + 's';
+        piece.style.width  = (6 + Math.random() * 10) + 'px';
+        piece.style.height = (6 + Math.random() * 10) + 'px';
+        piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 3000);
+      }, i * 30);
+    }
+  }
+
+  /* ===== リセット ===== */
+  function confirmReset() {
+    if (filled === 0) return;
+    if (confirm('シールを ぜんぶ けして はじめから やりなおしますか？')) resetAll();
+  }
+
+  function resetAll() {
+    filled = 0;
+    selectedAmount = selectedSpeed = null;
+    document.getElementById('modalOverlay').classList.remove('show');
+    document.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('selected'));
+    init();
+    updateResult();
+  }
+
+  /* ===== 起動 ===== */
+  init();
+</script>
+</body>
+</html>
