@@ -494,6 +494,9 @@
 
     .modal .completed-count-badge .n { font-size: 1.2rem; color: #cc8800; }
 
+    /* ===== 復元時アニメーション無効 ===== */
+    .slot.no-anim { animation: none !important; }
+
     /* ===== 紙吹雪 ===== */
     .confetti-piece {
       position: fixed;
@@ -621,7 +624,7 @@
   const NUM_COLORS = 10;
 
   /* ===== 状態 ===== */
-  let filled = 0;
+  let filled = parseInt(storageGet('filledCount', '0'));
   let selectedAmount = null;
   let selectedSpeed  = null;
   /* localStorage は Safari プライベートモード等で例外になるため try-catch で保護 */
@@ -644,6 +647,11 @@
       slot.id = `slot-${i}`;
       slot.innerHTML = `<span class="slot-number">${i + 1}</span>`;
       book.appendChild(slot);
+    }
+    // 保存済みシールを復元（アニメーションなし）
+    for (let i = 0; i < filled; i++) {
+      const slot = document.getElementById(`slot-${i}`);
+      if (slot) placeStickerNoAnimation(slot, i);
     }
     updateProgress();
     updateBookBanner();
@@ -716,6 +724,7 @@
     }
 
     filled += added;
+    storageSet('filledCount', filled);
     updateProgress();
 
     // 選択リセット
@@ -732,6 +741,13 @@
     const emoji    = STICKER_EMOJIS[index % STICKER_EMOJIS.length];
     const colorIdx = index % NUM_COLORS;
     slot.classList.add('filled');
+    slot.innerHTML = `<div class="sticker-inner color-${colorIdx}">${emoji}</div>`;
+  }
+
+  function placeStickerNoAnimation(slot, index) {
+    const emoji    = STICKER_EMOJIS[index % STICKER_EMOJIS.length];
+    const colorIdx = index % NUM_COLORS;
+    slot.classList.add('no-anim', 'filled');
     slot.innerHTML = `<div class="sticker-inner color-${colorIdx}">${emoji}</div>`;
   }
 
@@ -771,6 +787,7 @@
 
     // モーダルを見せながら、シール帳はすぐリセットして新しい枠を用意する
     filled = 0;
+    storageSet('filledCount', 0);
     selectedAmount = selectedSpeed = null;
     document.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('selected'));
     init();
@@ -856,6 +873,7 @@
 
   function resetAll() {
     filled = 0;
+    storageSet('filledCount', 0);
     selectedAmount = selectedSpeed = null;
     document.getElementById('modalOverlay').classList.remove('show');
     document.querySelectorAll('.btn-choice').forEach(b => b.classList.remove('selected'));
